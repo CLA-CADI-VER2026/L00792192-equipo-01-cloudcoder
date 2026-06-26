@@ -15,13 +15,13 @@ Construida con **Flask + MySQL**, corre en el puerto **3000** dentro de un GitHu
 │  │ curl /      │◄───────────►│  Flask :3000      │  │
 │  │ Postman /   │             │  ws_directorio.py │  │
 │  │ Frontend    │             └────────┬──────────┘  │
-│  └─────────────┘                     │              │
-│                          mysql-connector-python      │
-│                                      │              │
-│                          ┌───────────▼──────────┐   │
-│                          │  MySQL en Docker     │   │
-│                          │  (contenedor :3306)  │   │
-│                          └──────────────────────┘   │
+│  └─────────────┘                      │             │
+│                           mysql-connector-python    │
+│                                       │             │
+│                           ┌───────────▼──────────┐  │
+│                           │  MySQL en Docker     │  │
+│                           │  (contenedor :3306)  │  │
+│                           └──────────────────────┘  │
 └─────────────────────────────────────────────────────┘
 ```
 

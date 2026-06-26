@@ -45,7 +45,7 @@ Navegador (HTTPS)
 │       └── style.css                              │
 │                    │                             │
 │                    │ fetch() HTTPS               │
-│                    │ puerto 3000 público          │
+│                    │ puerto 3000 público         │
 │                    ▼                             │
 │  python backend-directorio/ws_directorio.py      │
 │  Flask → puerto 3000                             │
