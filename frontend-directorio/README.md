@@ -2,36 +2,40 @@
 
 Interfaz web para el Directorio Académico — gestión de materias y docentes.  
 Construida con **HTML + CSS + JavaScript puro** (`fetch`), sin frameworks ni dependencias.  
-Se sirve con `python -m http.server 8080` desde el Codespace.
+Se sirve con `python -m http.server 8080` desde la raíz del Codespace.
 
 ---
 
 ## Arquitectura
 
 ```
+Navegador
+   │  HTTPS (puerto 8080 público de Codespaces)
+   ▼
 ┌─────────────────────────────────────────────────────┐
 │                  GitHub Codespace                   │
 │                                                     │
-│  ┌──────────────────────┐   HTTP/JSON               │
-│  │  Navegador           │◄─────────────────────►   │
-│  │  index.html          │       Flask :3000         │
-│  │  style.css           │  (backend-directorio /    │
-│  │  fetch() → /api/v1/  │   otro Codespace)         │
-│  └──────────────────────┘                           │
-│           ▲                                         │
-│           │  python -m http.server 8080             │
-└───────────┼─────────────────────────────────────────┘
-            │
-     Puerto 8080 (VS Code → Ports)
+│  python -m http.server 8080                         │
+│  └── frontend-directorio/                           │
+│       ├── index.html                                │
+│       └── style.css                                 │
+│                                                     │
+│  fetch() → URL pública puerto 3000 (HTTPS)          │
+│       │                                             │
+│  Flask :3000  (ws_directorio.py)                    │
+│       │                                             │
+│  MySQL en Docker :3306                              │
+└─────────────────────────────────────────────────────┘
 ```
 
----
+> **Por qué se necesita la URL pública del puerto 3000:**  
+> El frontend se sirve sobre HTTPS desde Codespaces. Los navegadores bloquean
+> peticiones `fetch()` a `http://localhost` desde páginas HTTPS (Mixed Content).
+> Aunque Flask y el frontend estén en el **mismo Codespace**, el puerto 3000
+> debe exponerse como público para que el navegador pueda alcanzarlo por HTTPS.
 
-## Requisitos previos
-
-- El **backend** (`ws_directorio.py`) debe estar corriendo y accesible.
-- Si el backend corre en el **mismo Codespace**, no necesitas cambiar nada.
-- Si corre en un **Codespace separado**, necesitas su URL pública (ver Paso 3).
+> Todos los comandos se ejecutan desde la **raíz del workspace**:  
+> `/workspaces/L00792192-equipo-01-cloudcoder`
 
 ---
 
@@ -39,7 +43,7 @@ Se sirve con `python -m http.server 8080` desde el Codespace.
 
 1. Haz clic en el botón verde **Code** → pestaña **Codespaces**.
 2. Selecciona **Create codespace on main**.
-3. Espera ~30 segundos. Python ya estará disponible (no necesitas instalar nada).
+3. Espera ~30 segundos. Python ya estará disponible.
 4. Verifica con:
 
 ```bash
@@ -48,12 +52,38 @@ python --version
 
 ---
 
-## Paso 2 — Servir el frontend
+## Paso 2 — Asegúrate de que el backend esté corriendo
 
-En el terminal integrado de VS Code:
+El frontend depende de la API REST. Antes de servir el frontend, verifica que Flask esté activo en el puerto 3000 y que el puerto sea **público**. Sigue los pasos del [`backend-directorio/README.md`](../backend-directorio/README.md).
+
+---
+
+## Paso 3 — Configurar la URL del backend en index.html
+
+Dado que el frontend se sirve sobre HTTPS, debes usar la URL pública del puerto 3000 en lugar de `localhost`.
+
+1. En VS Code, abre la pestaña **Ports**.
+2. Localiza el puerto **3000** → verifica que su visibilidad sea **Public**.
+3. Copia la URL pública (formato: `https://<nombre-codespace>-3000.app.github.dev`).
+4. Abre `frontend-directorio/index.html` y edita la línea de la constante `API`:
+
+```javascript
+// Reemplaza esta línea:
+const API = 'http://localhost:3000/api/v1';
+
+// Por la URL pública del puerto 3000, por ejemplo:
+const API = 'https://zany-garbanzo-4jv65pwgjj4h744r-3000.app.github.dev/api/v1';
+```
+
+> El nombre del Codespace (`zany-garbanzo-...`) es el mismo que aparece en la URL
+> del puerto 8080 — solo cambia el número de puerto al final.
+
+---
+
+## Paso 4 — Servir el frontend
 
 ```bash
-python -m http.server 8080
+python -m http.server 8080 --directory frontend-directorio
 ```
 
 Luego, en la pestaña **Ports** de VS Code:
@@ -66,34 +96,7 @@ Luego, en la pestaña **Ports** de VS Code:
 
 ---
 
-## Paso 3 — Conectar con el backend
-
-### Opción A: backend en el mismo Codespace (puerto 3000)
-
-No necesitas cambiar nada. La URL por defecto en `index.html` ya apunta a `localhost:3000`:
-
-```javascript
-const API = 'http://localhost:3000/api/v1';
-```
-
-### Opción B: backend en otro Codespace
-
-1. En el Codespace del backend, abre la pestaña **Ports**.
-2. Localiza el puerto **3000** → clic derecho → **Port Visibility → Public**.
-3. Copia la URL pública (formato: `https://<nombre-codespace>-3000.app.github.dev`).
-4. Edita `index.html` y reemplaza la línea de `API`:
-
-```javascript
-const API = 'https://<nombre-codespace>-3000.app.github.dev/api/v1';
-```
-
-5. Guarda el archivo. El navegador tomará el cambio en la siguiente recarga.
-
-> **Nota de seguridad:** regresa la visibilidad del puerto a **Private** cuando termines las pruebas.
-
----
-
-## Paso 4 — Usar la aplicación
+## Paso 5 — Usar la aplicación
 
 ### Pantalla de Materias
 
@@ -101,7 +104,7 @@ const API = 'https://<nombre-codespace>-3000.app.github.dev/api/v1';
 |--------|-------------|
 | Ver todas las materias | Se cargan automáticamente al abrir la página |
 | Agregar una materia | Llena el formulario superior y haz clic en **Guardar** |
-| Editar una materia | Haz clic en **✏️ Editar** en la fila correspondiente; los datos se cargan en el formulario |
+| Editar una materia | Haz clic en **✏️ Editar**; los datos se cargan en el formulario |
 | Eliminar una materia | Haz clic en **🗑️**; se pedirá confirmación |
 | Actualizar la lista | Haz clic en **↻ Actualizar** |
 
@@ -114,7 +117,7 @@ const API = 'https://<nombre-codespace>-3000.app.github.dev/api/v1';
 | Editar un docente | Haz clic en **✏️ Editar** en la fila correspondiente |
 | Eliminar un docente | Haz clic en **🗑️**; se pedirá confirmación |
 
-> El selector de materia en el formulario de docentes se llena automáticamente con las materias registradas en la base de datos.
+> El selector de materia en el formulario de docentes se llena automáticamente con las materias registradas.
 
 ---
 
@@ -124,12 +127,10 @@ const API = 'https://<nombre-codespace>-3000.app.github.dev/api/v1';
 frontend-directorio/
 ├── .devcontainer/
 │   └── devcontainer.json   ← Configura Python 3.12 en el Codespace
-├── index.html              ← Página principal: estructura HTML + lógica fetch()
+├── index.html              ← Página principal: HTML + lógica fetch()
 ├── style.css               ← Todos los estilos visuales de la aplicación
 └── README.md               ← Este archivo
 ```
-
-### Responsabilidad de cada archivo
 
 | Archivo | Contenido |
 |---------|-----------|
@@ -139,8 +140,6 @@ frontend-directorio/
 ---
 
 ## Referencia rápida de la API consumida
-
-El frontend llama a estos endpoints del backend (`/api/v1`):
 
 | Método | Ruta | Cuándo se llama |
 |--------|------|----------------|
@@ -159,14 +158,17 @@ El frontend llama a estos endpoints del backend (`/api/v1`):
 
 ## Solución de problemas frecuentes
 
-**La tabla aparece vacía o con error de conexión**  
-Verifica que el backend esté corriendo (`python ws_directorio.py` en el Codespace del backend) y que el puerto 3000 esté accesible. Si usas Opción B, revisa que el puerto sea **Public** y que la URL en `index.html` sea la correcta.
+**Error: `NetworkError when attempting to fetch resource`**  
+El navegador está bloqueando la petición a `localhost` desde una página HTTPS. Asegúrate de haber configurado la URL pública del puerto 3000 en `index.html` (Paso 3) y de que el puerto 3000 sea **Public** en la pestaña Ports.
 
-**Error de CORS en la consola del navegador**  
-El backend incluye `flask-cors` habilitado para todos los orígenes. Si ves este error, asegúrate de que `ws_directorio.py` esté corriendo (no una versión anterior sin CORS).
+**La tabla aparece vacía después de configurar la URL**  
+Verifica que Flask esté corriendo (`python backend-directorio/ws_directorio.py`) y que MySQL esté activo (`docker ps`). Haz una recarga forzada con **Ctrl + Shift + R**.
 
 **El selector de materia en Docentes aparece vacío**  
-Las materias se cargan primero al iniciar la página. Si la tabla de materias muestra error, el selector también quedará vacío. Resuelve la conexión al backend y recarga la página.
+Las materias se cargan primero al iniciar. Si la tabla de materias muestra error, el selector también quedará vacío. Resuelve la conexión al backend y recarga la página.
 
-**Cambié la URL de la API pero sigue fallando**  
-Haz una recarga forzada del navegador (`Ctrl + Shift + R` o `Cmd + Shift + R` en Mac) para limpiar el caché.
+**`style.css` da 404**  
+Asegúrate de ejecutar el servidor con `--directory frontend-directorio` desde la raíz del workspace, no desde dentro de la carpeta.
+
+**Cambié la URL pero sigue fallando**  
+Haz una recarga forzada del navegador: **Ctrl + Shift + R** (o **Cmd + Shift + R** en Mac).

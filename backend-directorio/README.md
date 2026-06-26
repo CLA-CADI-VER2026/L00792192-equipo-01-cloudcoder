@@ -25,6 +25,9 @@ Construida con **Flask + MySQL**, corre en el puerto **3000** dentro de un GitHu
 └─────────────────────────────────────────────────────┘
 ```
 
+> Todos los comandos se ejecutan desde la **raíz del workspace**:
+> `/workspaces/L00792192-equipo-01-cloudcoder`
+
 ---
 
 ## Requisitos previos
@@ -38,7 +41,7 @@ No necesitas instalar nada en tu máquina local.
 
 1. Haz clic en el botón verde **Code** → pestaña **Codespaces**.
 2. Selecciona **Create codespace on main**.
-3. Espera ~60 segundos mientras se configura el entorno (Python 3.12 + Docker).
+3. Espera ~60 segundos mientras se configura el entorno.
 4. Verifica que Docker esté disponible:
 
 ```bash
@@ -48,6 +51,8 @@ docker --version
 ---
 
 ## Paso 2 — Levantar MySQL en Docker
+
+Desde la raíz del workspace:
 
 ```bash
 docker run --name mysql-directorio \
@@ -78,13 +83,15 @@ docker ps
 Espera ~15 segundos para que MySQL termine de iniciar, luego ejecuta:
 
 ```bash
-docker exec -i mysql-directorio mysql -u root -pcontrasena directorio < directorio.sql
+docker exec -i mysql-directorio mysql -u root -pcontrasena directorio \
+  < backend-directorio/directorio.sql
 ```
 
 Para verificar que las tablas y datos estén listos:
 
 ```bash
-docker exec -it mysql-directorio mysql -u root -pcontrasena -e "USE directorio; SELECT * FROM materias; SELECT * FROM docentes;"
+docker exec -it mysql-directorio mysql -u root -pcontrasena \
+  -e "USE directorio; SELECT * FROM materias; SELECT * FROM docentes;"
 ```
 
 ---
@@ -103,22 +110,38 @@ pip install flask flask-cors mysql-connector-python
 
 ---
 
-## Paso 5 — Iniciar el servidor
+## Paso 5 — Iniciar el servidor Flask
 
 ```bash
-python ws_directorio.py
+python backend-directorio/ws_directorio.py
 ```
 
-El servidor queda corriendo en `http://localhost:3000`. Deberías ver:
+Deberías ver:
 
 ```
- * Running on all addresses (0.0.0.0)
- * Running on http://127.0.0.1:3000
+* Serving Flask app 'ws_directorio'
+* Running on all addresses (0.0.0.0)
+* Running on http://127.0.0.1:3000
 ```
 
 ---
 
-## Paso 6 — Probar los endpoints con `curl`
+## Paso 6 — Exponer el puerto 3000 como público
+
+El frontend se sirve sobre HTTPS desde Codespaces, por lo que el navegador bloquea peticiones a `http://localhost` (Mixed Content). Para evitarlo, el puerto 3000 debe ser público:
+
+1. En VS Code, abre la pestaña **Ports**.
+2. Localiza el puerto **3000**.
+3. Haz clic derecho → **Port Visibility → Public**.
+4. Copia la URL pública (formato: `https://<nombre-codespace>-3000.app.github.dev`).
+
+Esta URL es la que debe configurarse en el `index.html` del frontend.
+
+> **Nota de seguridad:** regresa la visibilidad a **Private** cuando termines las pruebas.
+
+---
+
+## Paso 7 — Probar los endpoints con `curl`
 
 Abre una **segunda terminal** (el servidor debe seguir corriendo en la primera).
 
@@ -170,24 +193,9 @@ curl -X DELETE http://localhost:3000/api/v1/docentes/3
 
 ---
 
-## Paso 7 — Exponer el puerto para el frontend (opcional)
-
-Si el frontend corre en un Codespace separado, debes hacer el puerto 3000 público:
-
-1. En VS Code, abre la pestaña **Ports**.
-2. Localiza el puerto **3000**.
-3. Haz clic derecho → **Port Visibility → Public**.
-4. Copia la URL pública (formato: `https://<nombre-codespace>-3000.app.github.dev`).
-5. Usa esa URL como `API_BASE` en el `index.html` del frontend.
-
-> **Nota de seguridad:** regresa la visibilidad a **Private** cuando termines las pruebas.
-
----
-
 ## Referencia de la API
 
-La especificación completa está en [`openapi.yaml`](../openapi.yaml).  
-Puedes visualizarla en [https://oas-validation.com](https://oas-validation.com) pegando el contenido del archivo.
+La especificación completa está en [`openapi.yaml`](../openapi.yaml).
 
 ### Resumen de endpoints
 
@@ -217,7 +225,7 @@ Todas las respuestas de error siguen el esquema:
 
 ## Variables de entorno (opcional)
 
-Por defecto el servidor usa los valores del Codespace. Si necesitas conectarte a otra instancia de MySQL puedes sobreescribirlos:
+Por defecto el servidor usa los valores del Codespace. Si necesitas conectarte a otra instancia de MySQL:
 
 | Variable | Valor por defecto | Descripción |
 |----------|-------------------|-------------|
@@ -230,7 +238,7 @@ Por defecto el servidor usa los valores del Codespace. Si necesitas conectarte a
 Ejemplo:
 
 ```bash
-DB_PASSWORD=mipass python ws_directorio.py
+DB_PASSWORD=mipass python backend-directorio/ws_directorio.py
 ```
 
 ---
